@@ -3,7 +3,7 @@
 // 实现类似 n8n 的动态连接点机制
 // ========================================
 
-import { reactive, computed, ref } from 'vue'
+import { reactive, computed, ref, nextTick } from 'vue'
 import type { DynamicHandleInfo } from '@/types/flow.types'
 
 // 全局动态锚点状态存储（使用 reactive 对象而非 Map）
@@ -12,6 +12,9 @@ const nodeHandlesState = reactive<Record<string, {
   inputHandles: DynamicHandleInfo[]
   outputHandles: DynamicHandleInfo[]
 }>>({})
+
+// 存储 updateNodeInternals 函数的引用（由 TaskCanvas 注册）
+let updateNodeInternalsFunc: ((nodeId: string | string[]) => void) | null = null
 
 // ========================================
 // 连线状态管理（用于动态生成目标 handle）
@@ -71,9 +74,22 @@ function recalculatePositions(nodeId: string) {
   nodeHandles.outputHandles.forEach((handle, index) => {
     handle.position = outputPositions[index]
   })
+
+  // 通知 Vue Flow 节点内部发生变化，强制重新计算边的连接点
+  // 需要等待 DOM 更新后再触发
+  nextTick(() => {
+    if (updateNodeInternalsFunc) {
+      updateNodeInternalsFunc(nodeId)
+    }
+  })
 }
 
 export function useDynamicHandles() {
+  // 注册 updateNodeInternals 函数（由 TaskCanvas 调用）
+  function registerUpdateNodeInternals(fn: (nodeId: string | string[]) => void) {
+    updateNodeInternalsFunc = fn
+  }
+
   // 初始化节点的锚点状态
   function initNodeHandles(nodeId: string) {
     if (!nodeHandlesState[nodeId]) {
@@ -415,6 +431,9 @@ export function useDynamicHandles() {
     registerNodeBounds,
     updateAllNodeBounds,
     detectHoveredNode,
-    handleConnectingMouseMove
+    handleConnectingMouseMove,
+    
+    // Vue Flow 集成
+    registerUpdateNodeInternals
   }
 }

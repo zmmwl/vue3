@@ -55,7 +55,8 @@ const {
   removeEdges,
   getSelectedNodes,
   getSelectedEdges,
-  edges
+  edges,
+  updateNodeInternals
 } = useVueFlow(CANVAS_ID)
 
 const { getDragData, getNodeDimensions } = useDragAndDrop()
@@ -72,8 +73,13 @@ const {
   endConnecting,
   confirmTempHandle,
   handleConnectingMouseMove,
-  isConnecting
+  isConnecting,
+  registerUpdateNodeInternals
 } = useDynamicHandles()
+
+// 注册 updateNodeInternals 到动态锚点管理中
+// 这样当锚点位置变化时，可以通知 Vue Flow 重新计算边的连接点
+registerUpdateNodeInternals(updateNodeInternals)
 
 // 画布容器引用
 const canvasWrapper = ref<HTMLElement | null>(null)
@@ -184,18 +190,25 @@ onConnect((params) => {
   // 确定目标锚点 ID
   let targetHandleId = params.targetHandle
   
-  // 如果连接到的是临时输入锚点，确认它
+  // 情况1：连接到临时输入锚点，确认它并转为正式锚点
   if (targetHandleId?.startsWith('temp-input-')) {
     const confirmedHandleId = confirmTempHandle(params.target, edgeId)
     if (confirmedHandleId) {
       targetHandleId = confirmedHandleId
     }
-  } else if (!targetHandleId || targetHandleId === 'default-input') {
-    // 如果连接到的是默认输入锚点，则创建新的动态输入锚点
+  } 
+  // 情况2：没有 targetHandle，尝试确认临时 handle 或创建新锚点
+  else if (!targetHandleId) {
+    const confirmedHandleId = confirmTempHandle(params.target, edgeId)
+    if (confirmedHandleId) {
+      targetHandleId = confirmedHandleId
+    } else {
+      targetHandleId = createInputHandle(params.target, edgeId)
+    }
+  } 
+  // 情况3：连接到已有的动态锚点 - 每条边需要独立的锚点，创建新的
+  else {
     targetHandleId = createInputHandle(params.target, edgeId)
-  } else {
-    // 更新已有锚点的边 ID
-    updateHandleEdge(params.target, targetHandleId, edgeId)
   }
   
   // 更新源节点的输出锚点关联的边 ID
@@ -310,7 +323,6 @@ onUnmounted(() => {
         type: 'taskEdge',
         markerEnd: 'arrow'
       }"
-      fit-view-on-init
       class="task-canvas"
     >
       <!-- SVG Defs for markers -->

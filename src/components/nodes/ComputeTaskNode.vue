@@ -30,11 +30,6 @@ const outputHandles = getOutputHandles(props.id)
 // 获取临时输入 handle（连线悬停时动态生成）
 const tempInputHandleId = getTempInputHandle(props.id)
 
-// 是否显示默认的连接点（当没有动态锚点且没有临时锚点时显示）
-const showDefaultInputHandle = computed(() => 
-  inputHandles.value.length === 0 && !tempInputHandleId.value
-)
-
 // 节点样式类
 const nodeClasses = computed(() => ({
   'compute-task-node': true,
@@ -79,15 +74,6 @@ async function onAddBtnMouseDown(event: MouseEvent) {
 
 <template>
   <div :class="nodeClasses">
-    <!-- 默认输入锚点（当没有动态输入锚点时显示，用于接收连线） -->
-    <Handle
-      v-if="showDefaultInputHandle"
-      id="default-input"
-      type="target"
-      :position="Position.Top"
-      class="handle handle-input handle-default"
-    />
-
     <!-- 临时输入锚点（连线悬停时动态生成） -->
     <Handle
       v-if="tempInputHandleId"
@@ -105,7 +91,7 @@ async function onAddBtnMouseDown(event: MouseEvent) {
       type="target"
       :position="Position.Top"
       class="handle handle-input handle-dynamic"
-      :style="{ left: handle.position }"
+      :style="{ '--handle-left': handle.position }"
     />
 
     <!-- 节点主体（圆角长方形） -->
@@ -131,7 +117,7 @@ async function onAddBtnMouseDown(event: MouseEvent) {
       type="source"
       :position="Position.Bottom"
       class="handle handle-output handle-dynamic"
-      :style="{ left: handle.position }"
+      :style="{ '--handle-left': handle.position }"
     />
 
     <!-- 添加连线按钮（十字） - 底部 -->
@@ -283,27 +269,17 @@ async function onAddBtnMouseDown(event: MouseEvent) {
   
   &.handle-input {
     top: -6px !important;
-    left: 50%;
     transform: translateX(-50%);
   }
   
   &.handle-output {
     bottom: -6px !important;
-    left: 50%;
     transform: translateX(-50%);
-  }
-
-  // 默认锚点样式（初始时显示，悬停时更明显）
-  &.handle-default {
-    opacity: 0.5;
-    
-    .compute-task-node:hover & {
-      opacity: 1;
-    }
   }
 
   // 临时锚点样式（连线悬停时动态生成的）
   &.handle-temp {
+    left: 50% !important;
     opacity: 1;
     background: var(--color--primary-light, #fff0ee) !important;
     border-color: var(--color--primary) !important;
@@ -312,6 +288,7 @@ async function onAddBtnMouseDown(event: MouseEvent) {
 
   // 动态锚点样式（已建立连接的）
   &.handle-dynamic {
+    left: var(--handle-left, 50%) !important;
     opacity: 1;
     
     &:hover {
