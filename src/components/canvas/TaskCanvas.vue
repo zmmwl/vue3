@@ -45,6 +45,7 @@ function generateEdgeId(): string {
 const { 
   project, 
   onConnect,
+  onConnectStart,
   onConnectEnd,
   onEdgesChange,
   onNodesChange,
@@ -66,7 +67,12 @@ const {
   updateHandleEdge,
   removeHandleByEdgeId,
   clearNodeHandles,
-  cleanupAllUnconnectedHandles
+  cleanupAllUnconnectedHandles,
+  startConnecting,
+  endConnecting,
+  confirmTempHandle,
+  handleConnectingMouseMove,
+  isConnecting
 } = useDynamicHandles()
 
 // 画布容器引用
@@ -163,6 +169,14 @@ function onDrop(event: DragEvent) {
   }
 }
 
+// 处理连线开始
+// 参数类型: { nodeId: string; handleId: string | null; type: 'source' | 'target' }
+onConnectStart((params) => {
+  if (params?.nodeId) {
+    startConnecting(params.nodeId, params.handleId ?? null)
+  }
+})
+
 // 处理连接建立
 onConnect((params) => {
   const edgeId = generateEdgeId()
@@ -170,8 +184,14 @@ onConnect((params) => {
   // 确定目标锚点 ID
   let targetHandleId = params.targetHandle
   
-  // 如果连接到的是默认输入锚点，则创建新的动态输入锚点
-  if (!targetHandleId || targetHandleId === 'default-input') {
+  // 如果连接到的是临时输入锚点，确认它
+  if (targetHandleId?.startsWith('temp-input-')) {
+    const confirmedHandleId = confirmTempHandle(params.target, edgeId)
+    if (confirmedHandleId) {
+      targetHandleId = confirmedHandleId
+    }
+  } else if (!targetHandleId || targetHandleId === 'default-input') {
+    // 如果连接到的是默认输入锚点，则创建新的动态输入锚点
     targetHandleId = createInputHandle(params.target, edgeId)
   } else {
     // 更新已有锚点的边 ID
@@ -195,8 +215,10 @@ onConnect((params) => {
   addEdges([edge])
 })
 
-// 处理连线取消（没有成功连接到目标）
+// 处理连线结束（无论是否成功）
 onConnectEnd(() => {
+  // 结束连线状态
+  endConnecting()
   // 连线取消时，清理未使用的临时锚点（没有关联边的锚点）
   cleanupAllUnconnectedHandles()
 })
@@ -250,6 +272,13 @@ function onKeyDown(event: KeyboardEvent) {
   }
 }
 
+// 处理画布上的鼠标移动（用于连线时的碰撞检测）
+function onCanvasMouseMove(event: MouseEvent) {
+  if (isConnecting.value) {
+    handleConnectingMouseMove(event.clientX, event.clientY)
+  }
+}
+
 onMounted(() => {
   window.addEventListener('keydown', onKeyDown)
 })
@@ -265,6 +294,7 @@ onUnmounted(() => {
     class="canvas-wrapper"
     @dragover="onDragOver"
     @drop="onDrop"
+    @mousemove="onCanvasMouseMove"
   >
     <VueFlow
       :id="CANVAS_ID"

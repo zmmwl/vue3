@@ -9,7 +9,12 @@ import { useDynamicHandles } from '@/composables/useDynamicHandles'
 const props = defineProps<NodeProps<ComputeTaskNodeData>>()
 
 // 动态锚点管理
-const { getInputHandles, getOutputHandles, createOutputHandle } = useDynamicHandles()
+const { 
+  getInputHandles, 
+  getOutputHandles, 
+  createOutputHandle,
+  getTempInputHandle
+} = useDynamicHandles()
 
 // 获取任务类型配置
 const taskConfig = computed(() => {
@@ -22,8 +27,13 @@ const inputHandles = getInputHandles(props.id)
 // 获取当前节点的动态输出锚点
 const outputHandles = getOutputHandles(props.id)
 
-// 是否显示默认的连接点（当没有动态锚点时显示）
-const showDefaultInputHandle = computed(() => inputHandles.value.length === 0)
+// 获取临时输入 handle（连线悬停时动态生成）
+const tempInputHandleId = getTempInputHandle(props.id)
+
+// 是否显示默认的连接点（当没有动态锚点且没有临时锚点时显示）
+const showDefaultInputHandle = computed(() => 
+  inputHandles.value.length === 0 && !tempInputHandleId.value
+)
 
 // 节点样式类
 const nodeClasses = computed(() => ({
@@ -76,6 +86,15 @@ async function onAddBtnMouseDown(event: MouseEvent) {
       type="target"
       :position="Position.Top"
       class="handle handle-input handle-default"
+    />
+
+    <!-- 临时输入锚点（连线悬停时动态生成） -->
+    <Handle
+      v-if="tempInputHandleId"
+      :id="tempInputHandleId"
+      type="target"
+      :position="Position.Top"
+      class="handle handle-input handle-temp"
     />
 
     <!-- 动态输入锚点（顶部） -->
@@ -283,6 +302,14 @@ async function onAddBtnMouseDown(event: MouseEvent) {
     }
   }
 
+  // 临时锚点样式（连线悬停时动态生成的）
+  &.handle-temp {
+    opacity: 1;
+    background: var(--color--primary-light, #fff0ee) !important;
+    border-color: var(--color--primary) !important;
+    animation: pulse-handle 0.6s ease-in-out infinite;
+  }
+
   // 动态锚点样式（已建立连接的）
   &.handle-dynamic {
     opacity: 1;
@@ -292,6 +319,18 @@ async function onAddBtnMouseDown(event: MouseEvent) {
       border-color: var(--color--neutral-400) !important;
       background: var(--color--neutral-100) !important;
     }
+  }
+}
+
+// 临时锚点的脉冲动画
+@keyframes pulse-handle {
+  0%, 100% {
+    transform: translateX(-50%) scale(1);
+    box-shadow: 0 0 0 0 rgba(var(--color--primary-rgb, 255, 87, 51), 0.4);
+  }
+  50% {
+    transform: translateX(-50%) scale(1.2);
+    box-shadow: 0 0 0 4px rgba(var(--color--primary-rgb, 255, 87, 51), 0);
   }
 }
 </style>
