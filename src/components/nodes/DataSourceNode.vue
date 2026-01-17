@@ -1,16 +1,23 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick } from 'vue'
 import { Handle, Position } from '@vue-flow/core'
 import type { NodeProps } from '@vue-flow/core'
 import type { DataSourceNodeData } from '@/types/flow.types'
 import { DATA_SOURCE_CONFIGS } from '@/types/flow.types'
+import { useDynamicHandles } from '@/composables/useDynamicHandles'
 
 const props = defineProps<NodeProps<DataSourceNodeData>>()
+
+// 动态锚点管理
+const { getOutputHandles, createOutputHandle } = useDynamicHandles()
 
 // 获取数据源配置
 const sourceConfig = computed(() => {
   return DATA_SOURCE_CONFIGS[props.data.sourceType] || DATA_SOURCE_CONFIGS.database
 })
+
+// 获取当前节点的动态输出锚点
+const outputHandles = getOutputHandles(props.id)
 
 // 节点样式类
 const nodeClasses = computed(() => ({
@@ -18,6 +25,35 @@ const nodeClasses = computed(() => ({
   'selected': props.selected,
   [`source-type--${props.data.sourceType}`]: true
 }))
+
+// 点击"+"按钮时，先创建锚点，然后触发其 mousedown 事件
+async function onAddBtnMouseDown(event: MouseEvent) {
+  event.preventDefault()
+  event.stopPropagation()
+  
+  // 创建新的输出锚点
+  const handleId = createOutputHandle(props.id)
+  
+  // 等待 DOM 更新
+  await nextTick()
+  
+  // 找到新创建的 Handle 元素并触发 mousedown
+  const handleElement = document.querySelector(
+    `.vue-flow__handle[data-handleid="${handleId}"]`
+  ) as HTMLElement
+  
+  if (handleElement) {
+    // 创建并派发 mousedown 事件
+    const mousedownEvent = new MouseEvent('mousedown', {
+      bubbles: true,
+      cancelable: true,
+      clientX: event.clientX,
+      clientY: event.clientY,
+      button: 0
+    })
+    handleElement.dispatchEvent(mousedownEvent)
+  }
+}
 </script>
 
 <template>
@@ -32,13 +68,25 @@ const nodeClasses = computed(() => ({
       </div>
     </div>
 
-    <!-- 输出 Handle（底部，圆点样式） -->
+    <!-- 动态输出锚点（底部） -->
     <Handle
-      id="output"
+      v-for="handle in outputHandles"
+      :key="handle.id"
+      :id="handle.id"
       type="source"
       :position="Position.Bottom"
-      class="handle handle-output"
+      class="handle handle-output handle-dynamic"
+      :style="{ left: handle.position }"
     />
+
+    <!-- 添加连线按钮（十字） -->
+    <div 
+      class="add-connection-btn"
+      @mousedown="onAddBtnMouseDown"
+      title="拖拽添加连线"
+    >
+      <span class="plus-icon">+</span>
+    </div>
   </div>
 </template>
 
@@ -113,6 +161,52 @@ const nodeClasses = computed(() => ({
   }
 }
 
+// 添加连线按钮（十字）
+.add-connection-btn {
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: var(--handle-add-btn--size, 20px);
+  height: var(--handle-add-btn--size, 20px);
+  border-radius: 50%;
+  background: var(--color--neutral-white);
+  border: 1.5px solid var(--handle-add-btn--color, var(--color--neutral-300));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: crosshair;
+  transition: all 0.2s ease;
+  z-index: 10;
+  opacity: 0;
+  
+  .data-source-node:hover & {
+    opacity: 1;
+  }
+
+  .plus-icon {
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--handle-add-btn--color, var(--color--neutral-400));
+    line-height: 1;
+    user-select: none;
+  }
+
+  &:hover {
+    border-color: var(--handle-add-btn--hover-color, var(--color--primary));
+    background: var(--color--primary-light, #fff0ee);
+    transform: translateX(-50%) scale(1.1);
+    
+    .plus-icon {
+      color: var(--handle-add-btn--hover-color, var(--color--primary));
+    }
+  }
+
+  &:active {
+    transform: translateX(-50%) scale(0.95);
+  }
+}
+
 // Handle 样式
 .handle {
   width: var(--handle--size) !important;
@@ -120,15 +214,22 @@ const nodeClasses = computed(() => ({
   background: var(--handle--color) !important;
   border: var(--handle--border-width) solid var(--handle--border-color) !important;
   border-radius: 50% !important;
+  transform: translateX(-50%);
+  transition: all 0.15s ease;
   
   &.handle-output {
     bottom: -6px !important;
   }
 
-  &:hover {
-    transform: scale(var(--handle--hover-scale));
-    border-color: var(--color--neutral-400) !important;
-    background: var(--color--neutral-100) !important;
+  // 动态锚点样式
+  &.handle-dynamic {
+    opacity: 1;
+    
+    &:hover {
+      transform: translateX(-50%) scale(var(--handle--hover-scale));
+      border-color: var(--color--neutral-400) !important;
+      background: var(--color--neutral-100) !important;
+    }
   }
 }
 </style>

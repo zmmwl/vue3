@@ -73,6 +73,32 @@
 }
 
 // ----------------
+// 动态 Handle 样式
+// ----------------
+.vue-flow__handle.handle-dynamic {
+  width: var(--handle-dynamic--size, 10px);
+  height: var(--handle-dynamic--size, 10px);
+  background: var(--handle--color);
+  border: var(--handle--border-width) solid var(--handle--border-color);
+  
+  &:hover {
+    transform: scale(var(--handle--hover-scale));
+    border-color: var(--color--primary);
+    background: var(--color--primary-light);
+  }
+}
+
+// 节点悬停时显示可连接提示
+.vue-flow__node {
+  &.connectable {
+    .node-body {
+      border-color: var(--color--success) !important;
+      box-shadow: 0 0 0 2px rgba(23, 191, 99, 0.2) !important;
+    }
+  }
+}
+
+// ----------------
 // 连线
 // ----------------
 .vue-flow__edge {

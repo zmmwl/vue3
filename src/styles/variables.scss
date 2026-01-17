@@ -132,6 +132,16 @@
   --handle--hover-scale: 1.3;
   
   // ----------------
+  // 动态锚点样式
+  // ----------------
+  --handle-dynamic--size: 10px;
+  --handle-add-btn--size: 20px;
+  --handle-add-btn--color: var(--color--neutral-300);
+  --handle-add-btn--hover-color: var(--color--primary);
+  --handle-add-btn--bg: var(--color--neutral-white);
+  --handle-add-btn--hover-bg: #fff0ee;
+  
+  // ----------------
   // 侧边栏
   // ----------------
   --sidebar--width: 240px;

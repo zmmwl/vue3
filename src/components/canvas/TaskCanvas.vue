@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { VueFlow, useVueFlow } from '@vue-flow/core'
+import type { EdgeChange } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import { MiniMap } from '@vue-flow/minimap'
@@ -11,6 +12,7 @@ import TaskEdge from '../edges/TaskEdge.vue'
 import ArrowMarker from '../edges/ArrowMarker.vue'
 
 import { useDragAndDrop } from '@/composables/useDragAndDrop'
+import { useDynamicHandles } from '@/composables/useDynamicHandles'
 import type { ComputeTaskType, DataSourceType, FlowEdge } from '@/types/flow.types'
 
 // 画布唯一 ID
@@ -43,15 +45,29 @@ function generateEdgeId(): string {
 const { 
   project, 
   onConnect,
+  onConnectEnd,
+  onEdgesChange,
+  onNodesChange,
   addNodes,
   addEdges,
   removeNodes,
   removeEdges,
   getSelectedNodes,
-  getSelectedEdges
+  getSelectedEdges,
+  edges
 } = useVueFlow(CANVAS_ID)
 
 const { getDragData, getNodeDimensions } = useDragAndDrop()
+
+// 动态锚点管理
+const { 
+  initNodeHandles,
+  createInputHandle, 
+  updateHandleEdge,
+  removeHandleByEdgeId,
+  clearNodeHandles,
+  cleanupAllUnconnectedHandles
+} = useDynamicHandles()
 
 // 画布容器引用
 const canvasWrapper = ref<HTMLElement | null>(null)
@@ -65,6 +81,8 @@ function addDataSourceNode(
   sourceType: DataSourceType
 ) {
   const id = generateNodeId('datasource')
+  // 初始化节点的动态锚点状态
+  initNodeHandles(id)
   addNodes([{
     id,
     type: 'dataSource',
@@ -82,6 +100,8 @@ function addComputeTaskNode(
   taskType: ComputeTaskType
 ) {
   const id = generateNodeId('compute')
+  // 初始化节点的动态锚点状态
+  initNodeHandles(id)
   addNodes([{
     id,
     type: 'computeTask',
@@ -89,8 +109,8 @@ function addComputeTaskNode(
     data: {
       label: `${taskType} 任务`,
       taskType,
-      inputCount: 2,
-      outputCount: 1
+      inputCount: 0,  // 动态模式下初始为0
+      outputCount: 0
     }
   }])
 }
@@ -143,18 +163,68 @@ function onDrop(event: DragEvent) {
   }
 }
 
-// 处理连接
+// 处理连接建立
 onConnect((params) => {
+  const edgeId = generateEdgeId()
+  
+  // 确定目标锚点 ID
+  let targetHandleId = params.targetHandle
+  
+  // 如果连接到的是默认输入锚点，则创建新的动态输入锚点
+  if (!targetHandleId || targetHandleId === 'default-input') {
+    targetHandleId = createInputHandle(params.target, edgeId)
+  } else {
+    // 更新已有锚点的边 ID
+    updateHandleEdge(params.target, targetHandleId, edgeId)
+  }
+  
+  // 更新源节点的输出锚点关联的边 ID
+  if (params.sourceHandle) {
+    updateHandleEdge(params.source, params.sourceHandle, edgeId)
+  }
+  
   const edge: FlowEdge = {
-    id: generateEdgeId(),
+    id: edgeId,
     source: params.source,
     target: params.target,
     sourceHandle: params.sourceHandle ?? undefined,
-    targetHandle: params.targetHandle ?? undefined,
+    targetHandle: targetHandleId,
     type: 'taskEdge',
     markerEnd: 'arrow'
   }
   addEdges([edge])
+})
+
+// 处理连线取消（没有成功连接到目标）
+onConnectEnd(() => {
+  // 连线取消时，清理未使用的临时锚点（没有关联边的锚点）
+  cleanupAllUnconnectedHandles()
+})
+
+// 监听边的变化，处理边删除时的锚点清理
+onEdgesChange((changes: EdgeChange[]) => {
+  changes.forEach(change => {
+    if (change.type === 'remove') {
+      // 获取被删除的边
+      const removedEdge = edges.value.find(e => e.id === change.id)
+      if (removedEdge) {
+        // 清理源节点的输出锚点
+        removeHandleByEdgeId(removedEdge.source, removedEdge.id)
+        // 清理目标节点的输入锚点
+        removeHandleByEdgeId(removedEdge.target, removedEdge.id)
+      }
+    }
+  })
+})
+
+// 监听节点变化，处理节点删除时的锚点清理
+onNodesChange((changes) => {
+  changes.forEach(change => {
+    if (change.type === 'remove') {
+      // 清理被删除节点的所有锚点状态
+      clearNodeHandles(change.id)
+    }
+  })
 })
 
 // 删除选中元素

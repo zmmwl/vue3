@@ -13,6 +13,27 @@ export type DataSourceType = 'database' | 'file' | 'api' | 'stream'
 // 节点类型
 export type FlowNodeType = 'dataSource' | 'computeTask'
 
+// ========================================
+// 动态锚点相关类型
+// ========================================
+
+// 动态锚点信息
+export interface DynamicHandleInfo {
+  id: string
+  position: string  // 百分比位置，如 "30%"
+  connectedEdgeId?: string
+}
+
+// 动态锚点状态
+export interface DynamicHandleState {
+  inputHandles: DynamicHandleInfo[]
+  outputHandles: DynamicHandleInfo[]
+}
+
+// ========================================
+// 节点数据类型
+// ========================================
+
 // 数据源节点数据
 export interface DataSourceNodeData {
   label: string
@@ -27,7 +48,7 @@ export interface ComputeTaskNodeData {
   taskType: ComputeTaskType
   icon?: string
   description?: string
-  // 输入输出端口数量
+  // 输入输出端口数量（保留用于兼容，动态锚点模式下不使用）
   inputCount: number
   outputCount: number
 }
