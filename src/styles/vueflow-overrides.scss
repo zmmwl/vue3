@@ -1,0 +1,172 @@
+// ========================================
+// VueFlow 样式覆盖
+// 参考 n8n 样式实现
+// ========================================
+
+// ----------------
+// 画布面板
+// ----------------
+.vue-flow__pane {
+  cursor: grab;
+  
+  &.selection {
+    cursor: default;
+  }
+  
+  &.dragging {
+    cursor: grabbing;
+  }
+}
+
+// ----------------
+// 节点
+// ----------------
+.vue-flow__node {
+  &,
+  &.draggable {
+    cursor: pointer;
+  }
+  
+  &.dragging {
+    cursor: grabbing;
+  }
+  
+  &.selected {
+    z-index: 10 !important;
+  }
+}
+
+// ----------------
+// Handle（连接点）
+// ----------------
+.vue-flow__handle {
+  width: var(--handle--size);
+  height: var(--handle--size);
+  background: var(--handle--color);
+  border: var(--handle--border-width) solid var(--handle--border-color);
+  border-radius: 50%;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  
+  &:hover {
+    transform: scale(var(--handle--hover-scale));
+    border-color: var(--color--neutral-400);
+    background: var(--color--neutral-100);
+  }
+  
+  &.source {
+    cursor: crosshair;
+  }
+  
+  &.target {
+    cursor: pointer;
+  }
+  
+  &.connecting {
+    background: var(--color--primary-light);
+    border-color: var(--color--primary);
+  }
+  
+  &.valid {
+    background: var(--color--success);
+    border-color: var(--color--success);
+  }
+}
+
+// ----------------
+// 连线
+// ----------------
+.vue-flow__edge {
+  &-path {
+    stroke: var(--edge--color);
+    stroke-width: var(--edge--stroke-width);
+    stroke-linecap: round;
+    transition: stroke 0.15s ease;
+  }
+  
+  &:hover .vue-flow__edge-path,
+  &.selected .vue-flow__edge-path {
+    stroke: var(--edge--color--hover);
+  }
+  
+  &.selected .vue-flow__edge-path {
+    stroke: var(--edge--color--selected);
+  }
+}
+
+// 连接线（拖拽时）
+.vue-flow__connection-line {
+  stroke: var(--edge--color);
+  stroke-width: var(--edge--stroke-width);
+  stroke-dasharray: 5 5;
+}
+
+// ----------------
+// 选择框
+// ----------------
+.vue-flow__selection {
+  background: rgba(255, 109, 90, 0.08);
+  border: 1px dashed var(--color--primary);
+}
+
+.vue-flow__nodesselection-rect {
+  background: rgba(255, 109, 90, 0.05);
+  border: 1px solid var(--color--primary);
+  border-radius: var(--radius--md);
+}
+
+// ----------------
+// 小地图
+// ----------------
+.vue-flow__minimap {
+  border: 1px solid var(--color--neutral-200);
+  border-radius: var(--radius--lg);
+  background: var(--color--neutral-white);
+  overflow: hidden;
+  
+  .vue-flow__minimap-node {
+    fill: var(--color--neutral-300);
+    stroke: none;
+  }
+}
+
+// ----------------
+// 控制按钮
+// ----------------
+.vue-flow__controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing--3xs);
+  box-shadow: var(--shadow--md);
+  border-radius: var(--radius--lg);
+  overflow: hidden;
+  border: 1px solid var(--color--neutral-200);
+  
+  .vue-flow__controls-button {
+    width: 32px;
+    height: 32px;
+    background: var(--color--neutral-white);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    
+    &:hover {
+      background: var(--color--neutral-100);
+    }
+    
+    svg {
+      width: 16px;
+      height: 16px;
+      fill: var(--color--neutral-600);
+    }
+  }
+}
+
+// ----------------
+// 背景
+// ----------------
+.vue-flow__background {
+  background-color: var(--canvas--background);
+}

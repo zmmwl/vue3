@@ -1,0 +1,71 @@
+// ========================================
+// 全局样式入口
+// ========================================
+
+@use './variables.scss';
+@use './vueflow-overrides.scss';
+
+// ----------------
+// CSS Reset
+// ----------------
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  font-family: var(--font-family);
+  font-size: var(--font-size--md);
+  line-height: var(--line-height--md);
+  color: var(--color--neutral-800);
+  background-color: var(--canvas--background);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+}
+
+// ----------------
+// 通用工具类
+// ----------------
+.text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// ----------------
+// 滚动条样式
+// ----------------
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color--neutral-300);
+  border-radius: 3px;
+  
+  &:hover {
+    background: var(--color--neutral-400);
+  }
+}
